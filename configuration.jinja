@@ -37,7 +37,7 @@ resources:
         - name: external-nat
           type: ONE_TO_ONE_NAT
 
-- name: {{ env["deployment"] }}-instance-group-manager
+- name: {{ env["deployment"] }}-instance-group
   type: compute.v1.instanceGroupManager
   properties:
     zone: {{ properties["zone"] }}
@@ -51,9 +51,10 @@ resources:
   type: compute.v1.autoscaler
   properties:
     zone: {{ properties['zone'] }}
-    target: $(ref.{{ env["deployment"] }}-instance-group-manager.selfLink)
+    target: $(ref.{{ env["deployment"] }}-instance-group.selfLink)
     autoscalingPolicy:
-      maxNumReplicas: 2
+      minNumReplicas: 1
+      maxNumReplicas: 4
 
 - name: {{ env["deployment"] }}-health-check
   type: compute.v1.httpHealthCheck
