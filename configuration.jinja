@@ -1,8 +1,8 @@
 {% set region = properties["zone"][:properties["zone"].rfind("-")] %}
 
 resources:
-- name: {{ env["deployment"] }}-instance-template
-  type: compute.v1.instanceTemplate
+- type: compute.v1.instanceTemplate
+  name: {{ env["deployment"] }}-instance-template
   properties:
     properties:
       zone: {{ properties["zone"] }}
@@ -33,22 +33,19 @@ resources:
           sourceImage: projects/google-containers/global/images/family/container-vm
       networkInterfaces:
       - network: $(ref.{{ env["deployment"] }}-network.selfLink)
-        accessConfigs:
-        - name: external-nat
-          type: ONE_TO_ONE_NAT
 
-- name: {{ env["deployment"] }}-instance-group
-  type: compute.v1.instanceGroupManager
+- type: compute.v1.instanceGroupManager
+  name: {{ env["deployment"] }}-instance-group
   properties:
     zone: {{ properties["zone"] }}
     targetSize: 1
     targetPools: 
       - $(ref.{{ env["deployment"] }}-target-pool.selfLink)
-    baseInstanceName: instance
+    baseInstanceName: {{ env["deployment"] }}-instance
     instanceTemplate: $(ref.{{ env["deployment"] }}-instance-template.selfLink)
 
-- name: {{ env["deployment"] }}-auto-scaler
-  type: compute.v1.autoscaler
+- type: compute.v1.autoscaler
+  name: {{ env["deployment"] }}-auto-scaler
   properties:
     zone: {{ properties['zone'] }}
     target: $(ref.{{ env["deployment"] }}-instance-group.selfLink)
@@ -56,33 +53,33 @@ resources:
       minNumReplicas: 1
       maxNumReplicas: 4
 
-- name: {{ env["deployment"] }}-health-check
-  type: compute.v1.httpHealthCheck
+- type: compute.v1.httpHealthCheck
+  name: {{ env["deployment"] }}-health-check
   properties:
     port: 80
     requestPath: /
 
-- name: {{ env["deployment"] }}-target-pool
-  type: compute.v1.targetPool
+- type: compute.v1.targetPool
+  name: {{ env["deployment"] }}-target-pool
   properties:
     region: {{ region }}
     healthChecks:
       - $(ref.{{ env["deployment"] }}-health-check.selfLink)
 
-- name: {{ env["deployment"] }}-forwarding-rule
-  type: compute.v1.forwardingRule
+- type: compute.v1.forwardingRule
+  name: {{ env["deployment"] }}-forwarding-rule
   properties:
     region: {{ region }}
     portRange: 80
     target: $(ref.{{ env["deployment"] }}-target-pool.selfLink)
 
-- name: {{ env["deployment"] }}-network
-  type: compute.v1.network
+- type: compute.v1.network
+  name: {{ env["deployment"] }}-network
   properties:
     IPv4Range: 10.0.0.1/16
 
-- name: {{ env["deployment"] }}-firewall
-  type: compute.v1.firewall
+- type: compute.v1.firewall
+  name: {{ env["deployment"] }}-firewall
   properties:
     network: $(ref.{{ env["deployment"] }}-network.selfLink)
     sourceRanges: ["0.0.0.0/0"]
