@@ -1,0 +1,90 @@
+{% set region = properties["zone"][:properties["zone"].rfind("-")] %}
+
+resources:
+- name: instance-template
+  type: compute.v1.instanceTemplate
+  properties:
+    properties:
+      zone: {{ properties["zone"] }}
+      machineType: f1-micro
+      metadata:
+        items:
+          - key: google-container-manifest
+            value: | 
+              apiVersion: v1
+              kind: Pod
+              metadata:
+                name: simple-echo
+              spec:
+                containers:
+                  - name: simple-echo
+                    image: gcr.io/google-containers/busybox
+                    command: ['nc', '-p', '8080', '-l', '-l', '-e', 'echo', "HTTP/1.0 200 OK\r\n\r\nHey!"]
+                    imagePullPolicy: Always
+                    ports:
+                      - containerPort: 8080
+                        hostPort: 80
+      disks:
+      - deviceName: boot
+        type: PERSISTENT
+        boot: true
+        autoDelete: true
+        initializeParams:
+          sourceImage: projects/google-containers/global/images/family/container-vm
+      networkInterfaces:
+      - network: $(ref.network.selfLink)
+        accessConfigs:
+        - name: external-nat
+          type: ONE_TO_ONE_NAT
+
+- name: instance-group-manager
+  type: compute.v1.instanceGroupManager
+  properties:
+    zone: {{ properties["zone"] }}
+    targetSize: 1
+    targetPools: 
+      - $(ref.target-pool.selfLink)
+    baseInstanceName: instance
+    instanceTemplate: $(ref.instance-template.selfLink)
+
+- name: auto-scaler
+  type: compute.v1.autoscaler
+  properties:
+    zone: {{ properties['zone'] }}
+    target: $(ref.instance-group-manager.selfLink)
+    autoscalingPolicy:
+      maxNumReplicas: 2
+
+- name: health-check
+  type: compute.v1.httpHealthCheck
+  properties:
+    port: 80
+    requestPath: /
+
+- name: target-pool
+  type: compute.v1.targetPool
+  properties:
+    region: {{ region }}
+    healthChecks:
+      - $(ref.health-check.selfLink)
+
+- name: forwarding-rule
+  type: compute.v1.forwardingRule
+  properties:
+    region: {{ region }}
+    portRange: 80
+    target: $(ref.target-pool.selfLink)
+
+- name: network
+  type: compute.v1.network
+  properties:
+    IPv4Range: 10.0.0.1/16
+
+- name: firewall
+  type: compute.v1.firewall
+  properties:
+    network: $(ref.network.selfLink)
+    sourceRanges: ["0.0.0.0/0"]
+    allowed:
+    - IPProtocol: TCP
+      ports: ["80"]

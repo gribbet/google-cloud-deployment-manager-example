@@ -1,47 +1,8 @@
+imports:
+- path: configuration.jinja
+
 resources:
-- name: vm
-  type: compute.v1.instance
+- name: configuration
+  type: configuration.jinja
   properties:
-    zone: us-central1-b
-    machineType: zones/us-central1-b/machineTypes/f1-micro
-    metadata:
-      items:
-        - key: google-container-manifest
-          value: | 
-            apiVersion: v1
-            kind: Pod
-            metadata:
-              name: simple-echo
-            spec:
-              containers:
-                - name: simple-echo
-                  image: gcr.io/google-containers/busybox
-                  command: ['nc', '-p', '8080', '-l', '-l', '-e', 'echo', 'hello world!']
-                  imagePullPolicy: Always
-                  ports:
-                    - containerPort: 8080
-                      hostPort: 80
-    disks:
-    - deviceName: boot
-      type: PERSISTENT
-      boot: true
-      autoDelete: true
-      initializeParams:
-        sourceImage: projects/google-containers/global/images/family/container-vm
-    networkInterfaces:
-    - network: $(ref.network.selfLink)
-      accessConfigs:
-      - name: external-nat
-        type: ONE_TO_ONE_NAT
-- name: network
-  type: compute.v1.network
-  properties:
-    IPv4Range: 10.0.0.1/16
-- name: firewall
-  type: compute.v1.firewall
-  properties:
-    network: $(ref.network.selfLink)
-    sourceRanges: ["0.0.0.0/0"]
-    allowed:
-    - IPProtocol: TCP
-      ports: ["80"]
+    zone: us-west1-a
