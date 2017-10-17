@@ -1,7 +1,7 @@
 {% set region = properties["zone"][:properties["zone"].rfind("-")] %}
 
 resources:
-- name: instance-template
+- name: {{ env["deployment"] }}-instance-template
   type: compute.v1.instanceTemplate
   properties:
     properties:
@@ -32,58 +32,58 @@ resources:
         initializeParams:
           sourceImage: projects/google-containers/global/images/family/container-vm
       networkInterfaces:
-      - network: $(ref.network.selfLink)
+      - network: $(ref.{{ env["deployment"] }}-network.selfLink)
         accessConfigs:
         - name: external-nat
           type: ONE_TO_ONE_NAT
 
-- name: instance-group-manager
+- name: {{ env["deployment"] }}-instance-group-manager
   type: compute.v1.instanceGroupManager
   properties:
     zone: {{ properties["zone"] }}
     targetSize: 1
     targetPools: 
-      - $(ref.target-pool.selfLink)
+      - $(ref.{{ env["deployment"] }}-target-pool.selfLink)
     baseInstanceName: instance
-    instanceTemplate: $(ref.instance-template.selfLink)
+    instanceTemplate: $(ref.{{ env["deployment"] }}-instance-template.selfLink)
 
-- name: auto-scaler
+- name: {{ env["deployment"] }}-auto-scaler
   type: compute.v1.autoscaler
   properties:
     zone: {{ properties['zone'] }}
-    target: $(ref.instance-group-manager.selfLink)
+    target: $(ref.{{ env["deployment"] }}-instance-group-manager.selfLink)
     autoscalingPolicy:
       maxNumReplicas: 2
 
-- name: health-check
+- name: {{ env["deployment"] }}-health-check
   type: compute.v1.httpHealthCheck
   properties:
     port: 80
     requestPath: /
 
-- name: target-pool
+- name: {{ env["deployment"] }}-target-pool
   type: compute.v1.targetPool
   properties:
     region: {{ region }}
     healthChecks:
-      - $(ref.health-check.selfLink)
+      - $(ref.{{ env["deployment"] }}-health-check.selfLink)
 
-- name: forwarding-rule
+- name: {{ env["deployment"] }}-forwarding-rule
   type: compute.v1.forwardingRule
   properties:
     region: {{ region }}
     portRange: 80
-    target: $(ref.target-pool.selfLink)
+    target: $(ref.{{ env["deployment"] }}-target-pool.selfLink)
 
-- name: network
+- name: {{ env["deployment"] }}-network
   type: compute.v1.network
   properties:
     IPv4Range: 10.0.0.1/16
 
-- name: firewall
+- name: {{ env["deployment"] }}-firewall
   type: compute.v1.firewall
   properties:
-    network: $(ref.network.selfLink)
+    network: $(ref.{{ env["deployment"] }}-network.selfLink)
     sourceRanges: ["0.0.0.0/0"]
     allowed:
     - IPProtocol: TCP
