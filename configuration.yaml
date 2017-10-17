@@ -1,0 +1,36 @@
+resources:
+- name: vm
+  type: compute.v1.instance
+  properties:
+    zone: us-central1-b
+    machineType: zones/us-central1-b/machineTypes/f1-micro
+    metadata:
+      items:
+        - key: startup-script
+          value: |
+            #!/bin/bash
+            python -m SimpleHTTPServer 80
+    disks:
+    - deviceName: boot
+      type: PERSISTENT
+      boot: true
+      autoDelete: true
+      initializeParams:
+        sourceImage: projects/debian-cloud/global/images/family/debian-8
+    networkInterfaces:
+    - network: $(ref.network.selfLink)
+      accessConfigs:
+      - name: external-nat
+        type: ONE_TO_ONE_NAT
+- name: network
+  type: compute.v1.network
+  properties:
+    IPv4Range: 10.0.0.1/16
+- name: firewall
+  type: compute.v1.firewall
+  properties:
+    network: $(ref.network.selfLink)
+    sourceRanges: ["0.0.0.0/0"]
+    allowed:
+    - IPProtocol: TCP
+      ports: ["80"]
