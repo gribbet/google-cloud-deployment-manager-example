@@ -6,17 +6,28 @@ resources:
     machineType: zones/us-central1-b/machineTypes/f1-micro
     metadata:
       items:
-        - key: startup-script
-          value: |
-            #!/bin/bash
-            python -m SimpleHTTPServer 80
+        - key: google-container-manifest
+          value: | 
+            apiVersion: v1
+            kind: Pod
+            metadata:
+              name: simple-echo
+            spec:
+              containers:
+                - name: simple-echo
+                  image: gcr.io/google-containers/busybox
+                  command: ['nc', '-p', '8080', '-l', '-l', '-e', 'echo', 'hello world!']
+                  imagePullPolicy: Always
+                  ports:
+                    - containerPort: 8080
+                      hostPort: 80
     disks:
     - deviceName: boot
       type: PERSISTENT
       boot: true
       autoDelete: true
       initializeParams:
-        sourceImage: projects/debian-cloud/global/images/family/debian-8
+        sourceImage: projects/google-containers/global/images/family/container-vm
     networkInterfaces:
     - network: $(ref.network.selfLink)
       accessConfigs:
