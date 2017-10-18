@@ -37,8 +37,6 @@ resources:
   properties:
     zone: {{ properties["zone"] }}
     targetSize: 1
-    targetPools: 
-      - $(ref.{{ env["deployment"] }}-target-pool.selfLink)
     baseInstanceName: {{ env["deployment"] }}-instance
     instanceTemplate: $(ref.{{ env["deployment"] }}-instance-template.selfLink)
 
@@ -57,20 +55,6 @@ resources:
     port: 80
     requestPath: /
 
-- type: compute.v1.targetPool
-  name: {{ env["deployment"] }}-target-pool
-  properties:
-    region: {{ properties["zone"][:properties["zone"].rfind("-")] }}
-    healthChecks:
-      - $(ref.{{ env["deployment"] }}-health-check.selfLink)
-
-- type: compute.v1.forwardingRule
-  name: {{ env["deployment"] }}-forwarding-rule
-  properties:
-    region: {{ properties["zone"][:properties["zone"].rfind("-")] }}
-    portRange: 80
-    target: $(ref.{{ env["deployment"] }}-target-pool.selfLink)
-
 - type: compute.v1.network
   name: {{ env["deployment"] }}-network
   properties:
@@ -84,3 +68,30 @@ resources:
     allowed:
     - IPProtocol: TCP
       ports: ["80"]
+
+- type: compute.v1.backendService
+  name: {{ env["deployment"] }}-backend-service
+  properties:
+    healthChecks:
+      - $(ref.{{ env["deployment"] }}-health-check.selfLink)
+    port: 80
+    protocol: HTTP
+    backends: 
+      - group: $(ref.{{ env["deployment"] }}-instance-group.instanceGroup)
+
+- type: compute.v1.urlMap
+  name: {{ env["deployment"] }}-url-map
+  properties:
+    defaultService: $(ref.{{ env["deployment"] }}-backend-service.selfLink)
+
+- type: compute.v1.targetHttpProxy
+  name: {{ env["deployment"] }}-target-http-proxy
+  properties:
+    urlMap: $(ref.{{ env["deployment"] }}-url-map.selfLink)
+
+- type: compute.v1.globalForwardingRule
+  name: {{ env["deployment"] }}-global-forwarding-rule
+  properties:
+    portRange: 80
+    target: $(ref.{{ env["deployment"] }}-target-http-proxy.selfLink)
+  
