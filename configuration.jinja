@@ -17,7 +17,7 @@ resources:
                 containers:
                   - name: simple-echo
                     image: gcr.io/google-containers/busybox
-                    command: ["nc", "-p", "8080", "-l", "-l", "-e", "echo", "HTTP/1.0 200 OK\r\n\r\nHey!"]
+                    command: ["nc", "-p", "8080", "-l", "-l", "-e", "echo", "HTTP/1.0 200 OK\r\nContent-Length:4\r\n\r\nHey!"]
                     imagePullPolicy: Always
                     ports:
                       - containerPort: 8080
