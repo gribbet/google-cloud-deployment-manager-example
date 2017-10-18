@@ -5,4 +5,7 @@ resources:
 - name: configuration
   type: configuration.jinja
   properties:
-    zone: us-west1-a
+    zones: 
+      - us-west1-a
+      - us-east1-b
+      - europe-west1-c

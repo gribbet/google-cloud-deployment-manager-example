@@ -1,9 +1,9 @@
 resources:
+
 - type: compute.v1.instanceTemplate
   name: {{ env["deployment"] }}-instance-template
   properties:
     properties:
-      zone: {{ properties["zone"] }}
       machineType: f1-micro
       metadata:
         items:
@@ -31,34 +31,42 @@ resources:
           sourceImage: projects/google-containers/global/images/family/container-vm
       networkInterfaces:
       - network: $(ref.{{ env["deployment"] }}-network.selfLink)
+        accessConfigs:
+          - type: ONE_TO_ONE_NAT
+
+{% for zone in properties["zones"] %}
 
 - type: compute.v1.instanceGroupManager
-  name: {{ env["deployment"] }}-instance-group
+  name: {{ env["deployment"] }}-instance-group-{{ zone }}
   properties:
-    zone: {{ properties["zone"] }}
+    zone: {{ zone }}
     targetSize: 1
     baseInstanceName: {{ env["deployment"] }}-instance
     instanceTemplate: $(ref.{{ env["deployment"] }}-instance-template.selfLink)
 
 - type: compute.v1.autoscaler
-  name: {{ env["deployment"] }}-autoscaler
+  name: {{ env["deployment"] }}-autoscaler-{{ zone }}
   properties:
-    zone: {{ properties["zone"] }}
-    target: $(ref.{{ env["deployment"] }}-instance-group.selfLink)
+    zone: {{ zone }}
+    target: $(ref.{{ env["deployment"] }}-instance-group-{{ zone }}.selfLink)
     autoscalingPolicy:
       minNumReplicas: 1
       maxNumReplicas: 4
+
+{% endfor %}
 
 - type: compute.v1.httpHealthCheck
   name: {{ env["deployment"] }}-health-check
   properties:
     port: 80
+    checkIntervalSec: 1
+    timeoutSec: 1
     requestPath: /
 
 - type: compute.v1.network
   name: {{ env["deployment"] }}-network
   properties:
-    IPv4Range: 10.0.0.1/16
+    autoCreateSubnetworks: true
 
 - type: compute.v1.firewall
   name: {{ env["deployment"] }}-firewall
@@ -72,12 +80,14 @@ resources:
 - type: compute.v1.backendService
   name: {{ env["deployment"] }}-backend-service
   properties:
+    port: 80
+    timeoutSec: 1
+    backends: 
+      {% for zone in properties["zones"] %}
+      - group: $(ref.{{ env["deployment"] }}-instance-group-{{ zone }}.instanceGroup)
+      {% endfor %}
     healthChecks:
       - $(ref.{{ env["deployment"] }}-health-check.selfLink)
-    port: 80
-    protocol: HTTP
-    backends: 
-      - group: $(ref.{{ env["deployment"] }}-instance-group.instanceGroup)
 
 - type: compute.v1.urlMap
   name: {{ env["deployment"] }}-url-map
