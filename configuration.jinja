@@ -34,21 +34,21 @@ resources:
         accessConfigs:
           - type: ONE_TO_ONE_NAT
 
-{% for zone in properties["zones"] %}
+{% for region in properties["regions"] %}
 
-- type: compute.v1.instanceGroupManager
-  name: {{ env["deployment"] }}-instance-group-{{ zone }}
+- type: compute.v1.regionInstanceGroupManager
+  name: {{ env["deployment"] }}-region-instance-group-{{ region }}
   properties:
-    zone: {{ zone }}
+    region: {{ region }}
     targetSize: 1
     baseInstanceName: {{ env["deployment"] }}-instance
     instanceTemplate: $(ref.{{ env["deployment"] }}-instance-template.selfLink)
 
-- type: compute.v1.autoscaler
-  name: {{ env["deployment"] }}-autoscaler-{{ zone }}
+- type: compute.v1.regionAutoscaler
+  name: {{ env["deployment"] }}-autoscaler-{{ region }}
   properties:
-    zone: {{ zone }}
-    target: $(ref.{{ env["deployment"] }}-instance-group-{{ zone }}.selfLink)
+    region: {{ region }}
+    target: $(ref.{{ env["deployment"] }}-region-instance-group-{{ region }}.selfLink)
     autoscalingPolicy:
       minNumReplicas: 1
       maxNumReplicas: 4
@@ -83,8 +83,8 @@ resources:
     port: 80
     timeoutSec: 1
     backends: 
-      {% for zone in properties["zones"] %}
-      - group: $(ref.{{ env["deployment"] }}-instance-group-{{ zone }}.instanceGroup)
+      {% for region in properties["regions"] %}
+      - group: $(ref.{{ env["deployment"] }}-region-instance-group-{{ region }}.instanceGroup)
       {% endfor %}
     healthChecks:
       - $(ref.{{ env["deployment"] }}-health-check.selfLink)
@@ -104,4 +104,3 @@ resources:
   properties:
     portRange: 80
     target: $(ref.{{ env["deployment"] }}-target-http-proxy.selfLink)
-  
